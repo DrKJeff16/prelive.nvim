@@ -1,3 +1,4 @@
+--- @class prelive.WebBrowser
 local M = {}
 
 --- @type table<string, string[][]>
@@ -22,7 +23,7 @@ local browser_candidates = {
 }
 
 --- Get the system name.
----@return "windows" | "unix" | "mac" | "wsl" | nil
+--- @return "windows" | "unix" | "mac" | "wsl" | nil
 local function get_sysname()
   local uname = vim.uv.os_uname()
   if uname.sysname:find("Windows") then
@@ -49,27 +50,37 @@ local function get_sysname()
 end
 
 --- Inject the URL into the command.
----@param cmd string[]
----@param url string
----@return string[]
+--- @param cmd string[]
+--- @param url string
+--- @return string[]
 local function inject_url(cmd, url)
-  ---@diagnostic disable-next-line: no-unknown
+  if vim.fn.has("nvim-0.11") == 1 then
+    vim.validate("cmd", cmd, "table", false, "string[]")
+    vim.validate("url", url, "string", false)
+  else
+    vim.validate({
+      cmd = { cmd, "table" },
+      url = { url, "string" },
+    })
+  end
+
   return vim.tbl_map(function(arg)
     return arg:gsub("{url}", url)
   end, cmd)
 end
 
 --- Open the URL in the system browser.
----@param url string
----@param on_exit? fun(out: vim.SystemCompleted)
----@return vim.SystemObj object @see `vim.system()`
+--- @param url string
+--- @param on_exit? fun(out: vim.SystemCompleted)
+--- @return vim.SystemObj object
+--- @see vim.system
 function M.open_system(url, on_exit)
   local sysname = get_sysname()
   if not sysname then
     error("Unsupported system")
   end
 
-  -- find a browser
+  --- Find a browser.
   local candidates = browser_candidates[sysname]
   for _, candidate in ipairs(candidates) do
     local cmd = candidate[1]
@@ -78,17 +89,19 @@ function M.open_system(url, on_exit)
     end
   end
 
-  -- no browser found
+  --- No browser found.
   local executables = vim.tbl_map(
-    ---@param c string[]
-    ---@return string
+    --- @param c string[]
+    --- @return string
     function(c)
       return c[1]
     end,
     candidates
   )
-  local msg = string.format("No browser found: %s", table.concat(executables, ","))
-  error(msg)
+
+  error(string.format("No browser found: %s", table.concat(executables, ",")))
 end
 
 return M
+
+-- vim:ts=2:sts=2:sw=2:et:ai:si:sta:

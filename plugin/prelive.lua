@@ -5,7 +5,7 @@ vim.api.nvim_create_user_command("PreLiveGo", function(opts)
     return
   end
 
-  local dir, file ---@type string?,string?
+  local dir, file --- @type string?,string?
   dir, file = params[1], params[2]
   dir = dir or vim.uv.cwd()
   file = file or vim.api.nvim_buf_get_name(0)
@@ -30,3 +30,5 @@ end, {})
 vim.api.nvim_create_user_command("PreLiveLog", function()
   require("prelive").open_log()
 end, {})
+
+-- vim:ts=2:sts=2:sw=2:et:ai:si:sta:

@@ -5,29 +5,40 @@ local mime = require("prelive.core.http.util.mime")
 local util = require("prelive.util")
 local webbrowser = require("prelive.core.webbrowser")
 
-local M = {
-  _server = nil,
-}
+--- @class prelive
+--- @field _server? prelive.PreLiveServer
+local M = {}
 
---- setup
----@param opts? prelive.Config
+--- Setup `prelive`.
+--- @param opts? prelive.Config
 function M.setup(opts)
-  config.setup(opts)
+  if vim.fn.has("nvim-0.11") == 1 then
+    vim.validate("opts", opts, "table", true, "prelive.Config")
+  else
+    vim.validate({ opts = { opts, { "table", "nil" } } })
+  end
+  config.setup(opts or {})
 end
 
 --- Start live.
 --- Start the web server and begin serving files and watching for changes in the specified directory.
 --- If the `file` is specified, open the file in the browser.
 --- `file` must be in the `dir`.
----@param dir string The directory to serve.
----@param file? string The file to open. If nil, open the top page.
----@param go_opts? { watch: boolean }
+--- @param dir string The directory to serve.
+--- @param file? string The file to open. If nil, open the top page.
+--- @param go_opts? { watch: boolean }
 function M.go(dir, file, go_opts)
-  vim.validate({
-    dir = { dir, "string" },
-    file = { file, "string", true },
-    go_opts = { go_opts, "table", true },
-  })
+  if vim.fn.has("nvim-0.11") == 1 then
+    vim.validate("dir", dir, "string", false)
+    vim.validate("file", file, "string", true)
+    vim.validate("go_opts", go_opts, "table", true, "{ watch: boolean }")
+  else
+    vim.validate({
+      dir = { dir, "string" },
+      file = { file, { "string", "nil" } },
+      go_opts = { go_opts, { "table", "nil" } },
+    })
+  end
 
   local opts = config.get()
   go_opts = go_opts or { watch = true }
@@ -99,8 +110,8 @@ function M.go(dir, file, go_opts)
 end
 
 ---Select a served directory.
----@param prompt string The prompt message.
----@param on_select fun(selected: { dir: string, url: string })
+--- @param prompt string The prompt message.
+--- @param on_select fun(selected: { dir: string, url: string })
 local function select_served_directories(prompt, on_select)
   if not M._server then
     log.warn("The server is not running.")
@@ -153,9 +164,13 @@ function M.select_close()
 end
 
 ---Stop serving the directory. if the directory is not specified, stop all.
----@param dir string | nil
+--- @param dir? string
 function M.close(dir)
-  vim.validate({ dir = { dir, "string", true } })
+  if vim.fn.has("nvim-0.11") == 1 then
+    vim.validate("dir", dir, "string", true)
+  else
+    vim.validate({ dir = { dir, { "string", "nil" } } })
+  end
   if not M._server then
     log.warn("The server is not running.")
     return
@@ -178,14 +193,14 @@ function M.close(dir)
 end
 
 function M.open_log()
-  vim.cmd("tabedit " .. config.LOG_FILE_PATH)
+  vim.cmd.tabedit(config.LOG_FILE_PATH)
 end
 
 --- Reload the page.
 --- Use this when you want to reload the page regardless of whether there are changes.
 --- This is intended to be used when `{watch = false}` is specified with `go()`.
 --- Please specify the directory you specified with `go()` for `dir`.
----@param dir string The
+--- @param dir string The
 function M.reload(dir)
   if not M._server then
     log.warn("The server is not running.")
@@ -210,3 +225,5 @@ function M.reload(dir)
 end
 
 return M
+
+-- vim:ts=2:sts=2:sw=2:et:ai:si:sta:

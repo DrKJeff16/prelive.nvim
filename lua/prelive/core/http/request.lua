@@ -21,8 +21,8 @@ local MAX_CHUNK_SIZE_HEXDIGIT = ("FFFFFFFF"):len() -- 32bit. see also `MAX_BODY_
 local HTTPRequest = {}
 
 --- Create a new HTTPRequest object.
----@param param { version:string,method:string,path:string,headers:prelive.http.Headers,body:string,fragment:string,client_ip:string,query:string }
----@return prelive.http.Request
+--- @param param { version:string,method:string,path:string,headers:prelive.http.Headers,body:string,fragment:string,client_ip:string,query:string }
+--- @return prelive.http.Request
 function HTTPRequest:new(param)
   local obj = {}
   obj.version = param.version
@@ -41,16 +41,16 @@ function HTTPRequest:new(param)
 end
 
 --- Get request url
----@return string url The request url.
+--- @return string url The request url.
 function HTTPRequest:get_url()
   return ("%s://%s%s"):format(self.protocol, self.headers["Host"], self.path)
 end
 
----@async
+--- @async
 ---Parse HTTP request line.
----@param reader prelive.StreamReader
----@param opts prelive.Config.Http
----@return {method:string,path:string,version:string, query:string, fragment:string }? request, integer? err_status, string? err_msg
+--- @param reader prelive.StreamReader
+--- @param opts prelive.Config.Http
+--- @return {method:string,path:string,version:string, query:string, fragment:string }? request, integer? err_status, string? err_msg
 local function read_request_line_async(reader, opts)
   local line, err_msg = reader:readline_skip_empty_async(opts.max_request_line_size)
   if not line then
@@ -95,11 +95,11 @@ local function read_request_line_async(reader, opts)
   }
 end
 
----@async
+--- @async
 ---Read headers asynchronously
----@param reader prelive.StreamReader
----@param opts prelive.Config.Http
----@return prelive.http.Headers? headers, integer? err_status, string? err_msg
+--- @param reader prelive.StreamReader
+--- @param opts prelive.Config.Http
+--- @return prelive.http.Headers? headers, integer? err_status, string? err_msg
 local function read_headers_async(reader, opts)
   -- check if the function is called within a coroutine
   local thread = coroutine.running()
@@ -146,11 +146,11 @@ local function read_headers_async(reader, opts)
   return nil, status.REQUEST_HEADER_FIELDS_TOO_LARGE, "Request Header Fields Too Large."
 end
 
----@async
+--- @async
 ---Read chunked body
----@param reader prelive.StreamReader
----@param opts prelive.Config.Http
----@return string? data ,integer? err_status, string? err_msg
+--- @param reader prelive.StreamReader
+--- @param opts prelive.Config.Http
+--- @return string? data ,integer? err_status, string? err_msg
 local function read_chunked_body(reader, opts)
   -- RFC 9112 4.1. Chunked Transfer Coding
   -- chunked-body = *chunk
@@ -201,7 +201,7 @@ local function read_chunked_body(reader, opts)
     end
 
     -- check body size
-    total_size = total_size + chunk_size ---@type integer
+    total_size = total_size + chunk_size --- @type integer
     if total_size > opts.max_body_size then
       return nil, status.PAYLOAD_TOO_LARGE, string.format("Request must be less than %d bytes.", opts.max_body_size)
     end
@@ -240,12 +240,12 @@ local function read_chunked_body(reader, opts)
   return table.concat(body)
 end
 
----@async
+--- @async
 ---Read body with specified size
----@param reader prelive.StreamReader
----@param content_length string
----@param opts prelive.Config.Http
----@return string? data ,integer? err_status, string? err_msg
+--- @param reader prelive.StreamReader
+--- @param content_length string
+--- @param opts prelive.Config.Http
+--- @return string? data ,integer? err_status, string? err_msg
 local function read_sized_body(reader, content_length, opts)
   -- check content-length
   if content_length:match("^%d+$") == nil then
@@ -272,13 +272,13 @@ local function read_sized_body(reader, content_length, opts)
   return data
 end
 
----@async
+--- @async
 ---Read request body
----@param reader prelive.StreamReader
----@param headers prelive.http.Headers
----@param method string
----@param opts prelive.Config.Http
----@return string? data ,integer? err_status, string? err_msg
+--- @param reader prelive.StreamReader
+--- @param headers prelive.http.Headers
+--- @param method string
+--- @param opts prelive.Config.Http
+--- @return string? data ,integer? err_status, string? err_msg
 local function read_body(reader, headers, method, opts)
   local content_length = headers:get("Content-Length")
   local transfer_encoding = headers:get("Transfer-Encoding")
@@ -320,20 +320,27 @@ local function read_body(reader, headers, method, opts)
   return body
 end
 
----@async
+--- @async
 ---Read request asynchronously
----@param reader prelive.StreamReader
----@param client_ip string
----@param opts prelive.Config.Http
----@param default_host string?
----@return prelive.http.Request? request, integer? err_status, string? err_msg
+--- @param reader prelive.StreamReader
+--- @param client_ip string
+--- @param opts prelive.Config.Http
+--- @param default_host string?
+--- @return prelive.http.Request? request, integer? err_status, string? err_msg
 local function read_request_async(reader, client_ip, opts, default_host)
-  vim.validate({
-    reader = { reader, "table" },
-    client_ip = { client_ip, "string" },
-    opts = { opts, "table" },
-    default_host = { default_host, "string", true },
-  })
+  if vim.fn.has("nvim-0.11") == 1 then
+    vim.validate("reader", reader, "table", false, "prelive.StreamReader")
+    vim.validate("client_ip", client_ip, "string", false)
+    vim.validate("opts", opts, "table", false, "prelive.Config.Http")
+    vim.validate("default_host", default_host, "string", true)
+  else
+    vim.validate({
+      reader = { reader, "table" },
+      client_ip = { client_ip, "string" },
+      opts = { opts, "table" },
+      default_host = { default_host, { "string", "nil" } },
+    })
+  end
 
   -- check if the function is called within a coroutine
   local thread = coroutine.running()
@@ -395,3 +402,5 @@ return {
   read_request_async = read_request_async,
   HTTPRequest = HTTPRequest,
 }
+
+-- vim:ts=2:sts=2:sw=2:et:ai:si:sta:

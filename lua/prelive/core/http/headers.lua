@@ -1,6 +1,6 @@
 --- Convert header case for case-insensitive comparison.
----@param header string The header to convert.
----@return string converted The converted header.
+--- @param header string The header to convert.
+--- @return string converted The converted header.
 local function convert_header_case(header)
   -- convert key to HTTP header case
   -- These are all converted to `Content-Type`
@@ -15,10 +15,14 @@ end
 local HTTPHeaders = {}
 
 --- Create a new HTTPHeaders object.
----@param headers table<string,string> The headers.
----@return prelive.http.Headers
+--- @param headers table<string,string> The headers.
+--- @return prelive.http.Headers
 function HTTPHeaders:new(headers)
-  vim.validate({ headers = { headers, "table" } })
+  if vim.fn.has("nvim-0.11") == 1 then
+    vim.validate("headers", headers, "table", false, "table<string,string>")
+  else
+    vim.validate({ headers = { headers, "table" } })
+  end
 
   local obj = {}
   obj._headers = {} --- @type table<string,string>
@@ -32,18 +36,29 @@ function HTTPHeaders:new(headers)
 end
 
 --- Get a header value.
----@param key string The header key.
----@return string? value The header value.
+--- @param key string The header key.
+--- @return string? value The header value.
 function HTTPHeaders:get(key)
-  vim.validate({ key = { key, "string" } })
+  if vim.fn.has("nvim-0.11") == 1 then
+    vim.validate("key", key, "string", false)
+  else
+    vim.validate({ key = { key, "string" } })
+  end
   return self._headers[convert_header_case(key)]
 end
 
 --- Set a header value.
----@param key string The header key.
----@param value string The header value.
+--- @param key string The header key.
+--- @param value string The header value.
 function HTTPHeaders:set(key, value)
-  vim.validate({ key = { key, "string" }, value = { value, "string" } })
+  if vim.fn.has("nvim-0.11") == 1 then
+    vim.validate("key", key, "string", false)
+  else
+    vim.validate({
+      key = { key, "string" },
+      value = { value, "string" },
+    })
+  end
   self._headers[convert_header_case(key)] = value
 end
 
@@ -53,9 +68,11 @@ function HTTPHeaders:iter()
 end
 
 --- Get raw headers.
----@return table<string,string> headers The raw headers.
+--- @return table<string,string> headers The raw headers.
 function HTTPHeaders:raw()
   return self._headers
 end
 
 return HTTPHeaders
+
+-- vim:ts=2:sts=2:sw=2:et:ai:si:sta:
